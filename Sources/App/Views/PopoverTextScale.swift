@@ -60,14 +60,23 @@ extension EnvironmentValues {
 /// layout stays the designer's. Scaling here keeps one scale factor for the
 /// whole popover, and the width grows with it (`PopoverContentWidth`), so a line
 /// that fits at one size still fits at the next.
-private struct PopoverFontModifier: ViewModifier {
+struct PopoverFontModifier: ViewModifier {
     let size: CGFloat
     let weight: Font.Weight?
     let design: Font.Design?
     @Environment(\.popoverTextSize) private var popoverTextSize
 
+    /// The point size this modifier renders at for `textSize`.
+    ///
+    /// The scale is applied here and nowhere else, and `body` hands exactly
+    /// this to `Font.system`, so the rendered size and the asserted size cannot
+    /// drift apart.
+    func pointSize(at textSize: PopoverTextSize) -> CGFloat {
+        textSize.scaled(size)
+    }
+
     func body(content: Content) -> some View {
-        content.font(.system(size: popoverTextSize.scaled(size), weight: weight, design: design))
+        content.font(.system(size: pointSize(at: popoverTextSize), weight: weight, design: design))
     }
 }
 
