@@ -46,7 +46,7 @@ A few `app.*` keys worth knowing:
 |---|---|
 | `app.themeMode` | `system` (default), `light`, `dark`, `cli`, `christmas`, or `imported-<name>` |
 | `app.usageDisplayMode` | `remaining` (default), `used`, `pace` |
-| `app.popoverTextSize` | `medium` (default), `small`, `large`, `extraLarge` — scales every label in the menu bar popover and widens it to fit |
+| `app.popoverTextSize` | `medium` (default), `large`, `extraLarge` — scales every label in the menu bar popover up to 1.4× and widens it to fit. No smaller step is offered: the sizes on `main` are already the smallest |
 | `app.menuBarAccountLabelsEnabled` | `true` (default) shows account labels; `false` hides their menu bar text while retaining hover details |
 | `app.menuBarProviderSettings` | Per-provider menu bar choices: `{ "codex": { "primaryQuotaKey": "session", "secondaryQuotaKey": "weekly", "stacked": false, "stackedSize": "small" } }` |
 | `app.nativeMenuBarIconsEnabled` | `false` (default) keeps brand colors; `true` uses monochrome provider marks for every menu bar account, adapting to the bar’s appearance |
