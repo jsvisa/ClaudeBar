@@ -316,7 +316,7 @@ struct MenuContentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     Text("ClaudeBar")
-                        .popoverFont(18, weight: .bold, design: theme.fontDesign)
+                        .popoverDisplayFont(size: 18, theme: theme)
                         .foregroundStyle(theme.textPrimary)
 
                     // Christmas gift icon
@@ -345,6 +345,7 @@ struct MenuContentView: View {
         switch theme.id {
         case "cli": return "> usage monitor"
         case "christmas": return "Happy Holidays!"
+        case "pop": return "Your quotas, the cute way"
         default: return "AI Usage Monitor"
         }
     }
@@ -375,25 +376,29 @@ struct MenuContentView: View {
     private var statusBadge: some View {
         let statusColor = selectedProviderBadge.badgeColor(theme)
 
+        // An outlined theme fills the badge with its status colour, inked.
+        let outlined = theme.isOutlined
         return HStack(spacing: 6) {
             // Animated pulse dot
             PulsingStatusDot(
-                color: statusColor,
+                color: outlined ? theme.textOnStatus : statusColor,
                 isSyncing: isSelectedProviderSyncing
             )
 
             Text(statusText)
-                .popoverFont(11, weight: .medium, design: theme.fontDesign)
-                .foregroundStyle(theme.textPrimary)
+                .popoverFont(11, weight: outlined ? .heavy : .medium, design: theme.fontDesign)
+                .foregroundStyle(outlined ? theme.textOnStatus : theme.textPrimary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: theme.pillCornerRadius)
-                .fill(theme.glassBackground)
+                .fill(outlined ? statusColor : theme.glassBackground)
+                .themeShadow(theme, scale: 0.5)
                 .overlay(
                     RoundedRectangle(cornerRadius: theme.pillCornerRadius)
-                        .stroke(statusColor.opacity(0.5), lineWidth: 1)
+                        .stroke(outlined ? theme.glassBorder : statusColor.opacity(0.5),
+                                lineWidth: outlined ? theme.cardBorderWidth * 0.8 : 1)
                 )
         )
     }
@@ -437,6 +442,11 @@ struct MenuContentView: View {
                     .help(index < 9 ? "\(settings.shown(tab.name)) (⌘\(index + 1))" : settings.shown(tab.name))
                 }
             }
+            // A scroll view clips at its edges: leave room for an outlined
+            // theme's thick outline and hard shadow.
+            .padding(.vertical, theme.isOutlined ? 5 : 0)
+            .padding(.leading, theme.isOutlined ? 2 : 0)
+            .padding(.trailing, theme.isOutlined ? 5 : 0)
             .background(HorizontalScrollBooster())
             .overlay {
                 GeometryReader { geo in
@@ -561,7 +571,7 @@ struct MenuContentView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Capsule().fill(hidden ? Color.clear : theme.glassBackground))
-                        .overlay(Capsule().stroke(theme.glassBorder, lineWidth: 1))
+                        .overlay(Capsule().stroke(theme.glassBorder, lineWidth: theme.cardBorderWidth))
                         .foregroundStyle(hidden ? theme.textTertiary : theme.textPrimary)
                     }
                     .buttonStyle(.plain)
@@ -1147,16 +1157,24 @@ struct ProviderPill: View {
             .background(
                 ZStack {
                     if isSelected {
-                        RoundedRectangle(cornerRadius: theme.pillCornerRadius)
-                            .fill(theme.accentGradient)
-                            .shadow(color: theme.accentPrimary.opacity(0.3), radius: 6, y: 2)
+                        if theme.isOutlined {
+                            // Printed: an inked chip with a hard shadow, no glow.
+                            RoundedRectangle(cornerRadius: theme.pillCornerRadius)
+                                .fill(theme.accentGradient)
+                                .themeShadow(theme, scale: 0.5)
+                        } else {
+                            RoundedRectangle(cornerRadius: theme.pillCornerRadius)
+                                .fill(theme.accentGradient)
+                                .shadow(color: theme.accentPrimary.opacity(0.3), radius: 6, y: 2)
+                        }
                     } else {
                         RoundedRectangle(cornerRadius: theme.pillCornerRadius)
                             .fill(isHovering ? theme.hoverOverlay : theme.glassBackground)
                     }
 
                     RoundedRectangle(cornerRadius: theme.pillCornerRadius)
-                        .stroke(isSelected ? theme.accentPrimary.opacity(0.5) : theme.glassBorder, lineWidth: 1)
+                        .stroke(isSelected && !theme.isOutlined ? theme.accentPrimary.opacity(0.5) : theme.glassBorder,
+                                lineWidth: theme.cardBorderWidth)
                 }
             )
         }
@@ -1355,7 +1373,7 @@ struct WrappedStatCard: View {
                    let dollarCap = quota.formattedDollarCap {
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text(dollarUsed)
-                            .popoverFont(20, weight: .heavy, design: theme.fontDesign)
+                            .popoverDisplayFont(size: 20, weight: .heavy, theme: theme)
                             .foregroundStyle(theme.textPrimary)
 
                         Text("of \(dollarCap)")
@@ -1367,12 +1385,12 @@ struct WrappedStatCard: View {
                     .layoutPriority(1)
                 } else if let dollarText = quota.formattedDollarRemaining {
                     Text(dollarText)
-                        .popoverFont(18, weight: .bold, design: theme.fontDesign)
+                        .popoverDisplayFont(size: 18, theme: theme)
                         .foregroundStyle(theme.textPrimary)
                 } else {
                     HStack(alignment: .firstTextBaseline, spacing: 1) {
                         Text("\(Int(quota.displayPercent(mode: effectiveDisplayMode)))")
-                            .popoverFont(26, weight: .bold, design: theme.fontDesign)
+                            .popoverDisplayFont(size: 26, theme: theme)
                             .foregroundStyle(effectiveDisplayMode == .pace ? paceColor : theme.textPrimary)
 
                         Text("%")
@@ -1443,10 +1461,10 @@ struct WrappedStatCard: View {
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: theme.cardCornerRadius)
-                    .fill(theme.cardGradient)
+                    .fill(theme.cardGradient).themeShadow(theme)
 
                 RoundedRectangle(cornerRadius: theme.cardCornerRadius)
-                    .stroke(theme.glassBorder, lineWidth: 1)
+                    .stroke(theme.glassBorder, lineWidth: theme.cardBorderWidth)
             }
         )
         .scaleEffect(isHovering ? 1.015 : 1.0)
@@ -1550,7 +1568,7 @@ struct WrappedActionButton: View {
                         .fill(isHovering ? AnyShapeStyle(gradient) : AnyShapeStyle(theme.glassBackground))
 
                     Capsule()
-                        .stroke(theme.glassBorder, lineWidth: 1)
+                        .stroke(theme.glassBorder, lineWidth: theme.cardBorderWidth)
                 }
             )
             .shadow(color: isHovering ? theme.accentPrimary.opacity(0.3) : .clear, radius: 8, y: 2)

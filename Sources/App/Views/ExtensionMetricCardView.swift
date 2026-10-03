@@ -34,7 +34,7 @@ struct ExtensionMetricCardView: View {
             // Large value display
             HStack(alignment: .firstTextBaseline) {
                 Text(metric.value)
-                    .popoverFont(24, weight: .bold, design: theme.fontDesign)
+                    .popoverDisplayFont(size: 24, theme: theme)
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -85,10 +85,10 @@ struct ExtensionMetricCardView: View {
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: theme.cardCornerRadius)
-                    .fill(theme.cardGradient)
+                    .fill(theme.cardGradient).themeShadow(theme)
 
                 RoundedRectangle(cornerRadius: theme.cardCornerRadius)
-                    .stroke(theme.glassBorder, lineWidth: 1)
+                    .stroke(theme.glassBorder, lineWidth: theme.cardBorderWidth)
             }
         )
         .scaleEffect(isHovering ? 1.015 : 1.0)

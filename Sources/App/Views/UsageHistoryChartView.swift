@@ -56,9 +56,9 @@ struct UsageHistoryChartView: View {
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: theme.cardCornerRadius)
-                    .fill(theme.cardGradient)
+                    .fill(theme.cardGradient).themeShadow(theme)
                 RoundedRectangle(cornerRadius: theme.cardCornerRadius)
-                    .stroke(theme.glassBorder, lineWidth: 1)
+                    .stroke(theme.glassBorder, lineWidth: theme.cardBorderWidth)
             }
         )
         .opacity(isVisible ? 1 : 0)
@@ -83,7 +83,7 @@ struct UsageHistoryChartView: View {
             Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 1) {
                 Text(headline)
-                    .popoverFont(13, weight: .bold, design: theme.fontDesign)
+                    .popoverDisplayFont(size: 13, theme: theme)
                     .foregroundStyle(theme.textPrimary)
                 Text(caption)
                     .popoverFont(8, weight: .medium, design: theme.fontDesign)

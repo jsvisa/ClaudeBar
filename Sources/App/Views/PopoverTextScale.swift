@@ -80,6 +80,49 @@ struct PopoverFontModifier: ViewModifier {
     }
 }
 
+/// Resolves a popover big number's size through the user's Text Size setting.
+///
+/// A theme may name its own typeface for these numbers (`displayFontName`, e.g.
+/// the Pop theme's), so the size is scaled here and the typeface is still the
+/// theme's decision. Scaling before the theme is asked keeps the two concerns
+/// independent: the theme chooses *which* face, the setting chooses *how big*.
+struct PopoverDisplayFontModifier: ViewModifier {
+    let size: CGFloat
+    let weight: Font.Weight
+    let theme: any AppThemeProvider
+    @Environment(\.popoverTextSize) private var popoverTextSize
+
+    /// The point size this modifier asks the theme for, for `textSize`.
+    func pointSize(at textSize: PopoverTextSize) -> CGFloat {
+        textSize.scaled(size)
+    }
+
+    func body(content: Content) -> some View {
+        content.font(theme.displayFont(size: pointSize(at: popoverTextSize), weight: weight))
+    }
+}
+
+extension View {
+    /// The theme's display font at a scaled `size`, for a popover big number.
+    ///
+    /// Use this instead of `popoverFont` wherever a number is drawn with
+    /// `theme.displayFont(size:)`: the theme keeps its typeface, the user's
+    /// Text Size setting still scales it.
+    ///
+    /// ## Usage
+    /// ```swift
+    /// Text(costUsage.formattedCost)
+    ///     .popoverDisplayFont(size: 28, weight: .heavy, theme: theme)
+    /// ```
+    func popoverDisplayFont(
+        size: CGFloat,
+        weight: Font.Weight = .bold,
+        theme: any AppThemeProvider
+    ) -> some View {
+        modifier(PopoverDisplayFontModifier(size: size, weight: weight, theme: theme))
+    }
+}
+
 extension View {
     /// Popover text at `size` points, scaled by the user's Text Size setting.
     ///
@@ -94,6 +137,10 @@ extension View {
     /// mark drawn when a provider has no icon asset. It does not scale, because
     /// the circular badge it sits in is a fixed frame and a larger glyph would
     /// overflow it. It is decoration, not text anyone reads.
+    ///
+    /// A big number drawn with `theme.displayFont(size:)` goes through
+    /// `popoverDisplayFont(size:weight:theme:)` instead, so the scale applies
+    /// to the size while the theme keeps its typeface.
     ///
     /// ## Usage
     /// ```swift

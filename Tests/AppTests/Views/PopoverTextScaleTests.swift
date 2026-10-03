@@ -130,6 +130,35 @@ struct PopoverTextScaleTests {
         }
     }
 
+    // MARK: - Big Numbers, Where The Theme Owns The Typeface
+
+    @Test
+    func `a big number keeps the theme's typeface and still scales`() {
+        // Popover big numbers are drawn with `theme.displayFont(size:)` so a
+        // theme can name its own face — PopTheme's chunky numerals. The scale
+        // must still apply, and it must be applied to the *size* only, so
+        // `displayFont` keeps the typeface decision.
+        let modifier = PopoverDisplayFontModifier(size: 28, weight: .heavy, theme: PopTheme())
+        #expect(isClose(modifier.pointSize(at: .medium), 28))
+        #expect(isClose(modifier.pointSize(at: .large), 33.6))
+        #expect(isClose(modifier.pointSize(at: .extraLarge), 39.2))
+        // The theme still owns the face; the setting only moved the size.
+        #expect(PopTheme().displayFontName != nil)
+    }
+
+    @Test
+    func `every popover big number is scaled`() {
+        // The sizes #435 moved onto `theme.displayFont`: if one of these is
+        // left unscaled the setting quietly misses the number a user reads
+        // first. Mirrors the size list above so a new big number has to be
+        // added here on purpose.
+        for size: CGFloat in [13, 18, 20, 24, 26, 28] {
+            let modifier = PopoverDisplayFontModifier(size: size, weight: .bold, theme: DarkTheme())
+            #expect(isClose(modifier.pointSize(at: .medium), size))
+            #expect(modifier.pointSize(at: .extraLarge) > modifier.pointSize(at: .medium))
+        }
+    }
+
     // MARK: - What The Popover Actually Draws
 
     @Test @MainActor
