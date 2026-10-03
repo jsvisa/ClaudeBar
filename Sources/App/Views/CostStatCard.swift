@@ -64,11 +64,11 @@ struct CostStatCard: View {
                 // Left side: icon and label
                 HStack(spacing: 5) {
                     Image(systemName: "dollarsign.circle.fill")
-                        .font(.system(size: 9, weight: .bold))
+                        .popoverFont(9, weight: .bold)
                         .foregroundStyle(budgetStatusColor)
 
                     Text(headerTitle)
-                        .font(.system(size: 8, weight: .semibold, design: theme.fontDesign))
+                        .popoverFont(8, weight: .semibold, design: theme.fontDesign)
                         .foregroundStyle(theme.textSecondary)
                         .tracking(0.3)
                 }
@@ -85,12 +85,12 @@ struct CostStatCard: View {
             // Large cost display
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(costUsage.formattedCost)
-                    .font(.system(size: 28, weight: .heavy, design: theme.fontDesign))
+                    .popoverFont(28, weight: .heavy, design: theme.fontDesign)
                     .foregroundStyle(theme.textPrimary)
 
                 if let budget = effectiveBudget {
                     Text("of \(formatBudget(budget))")
-                        .font(.system(size: 12, weight: .semibold, design: theme.fontDesign))
+                        .popoverFont(12, weight: .semibold, design: theme.fontDesign)
                         .foregroundStyle(theme.textSecondary)
                 }
             }
@@ -100,7 +100,7 @@ struct CostStatCard: View {
                 budgetProgressBar(budget: budget)
             } else if costUsage.kind == .extraUsage, effectiveBudget == nil {
                 Text("No monthly cap")
-                    .font(.system(size: 8, weight: .semibold, design: theme.fontDesign))
+                    .popoverFont(8, weight: .semibold, design: theme.fontDesign)
                     .foregroundStyle(theme.textTertiary)
             }
 
@@ -108,20 +108,20 @@ struct CostStatCard: View {
             if costUsage.apiDuration > 0 {
                 HStack(spacing: 3) {
                     Image(systemName: "clock.fill")
-                        .font(.system(size: 7))
+                        .popoverFont(7)
 
                     Text("API Time: \(costUsage.formattedApiDuration)")
-                        .font(.system(size: 9, weight: .semibold, design: theme.fontDesign))
+                        .popoverFont(9, weight: .semibold, design: theme.fontDesign)
                 }
                 .foregroundStyle(theme.textTertiary)
                 .lineLimit(1)
             } else if let resetText = costUsage.resetText {
                 HStack(spacing: 3) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 7))
+                        .popoverFont(7)
 
                     Text(resetText)
-                        .font(.system(size: 9, weight: .semibold, design: theme.fontDesign))
+                        .popoverFont(9, weight: .semibold, design: theme.fontDesign)
                 }
                 .foregroundStyle(theme.textTertiary)
                 .lineLimit(1)
@@ -177,7 +177,7 @@ struct CostStatCard: View {
             if let remaining = effectiveBudgetRemaining {
                 HStack {
                     Text("\(Int(budgetPercentUsed))% used · \(formatBudget(remaining)) left")
-                        .font(.system(size: 8, weight: .semibold, design: theme.fontDesign))
+                        .popoverFont(8, weight: .semibold, design: theme.fontDesign)
                         .foregroundStyle(theme.textTertiary)
 
                     Spacer()

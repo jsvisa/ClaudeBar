@@ -58,6 +58,10 @@ public protocol AppSettingsRepository: Sendable {
     func showDailyUsageCards() -> Bool
     func setShowDailyUsageCards(_ show: Bool)
 
+    /// Text size for the popover; one of `PopoverTextSize`'s raw values.
+    func popoverTextSize() -> String
+    func setPopoverTextSize(_ size: String)
+
     // MARK: - Notch
 
     /// Whether the notch live activity is shown (default: false).

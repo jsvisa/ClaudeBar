@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Settings → Appearance → Popover Text Size scales every label in the menu bar popover — card titles, reset countdowns, "Updated just now" — from Small to Extra Large, and the popover widens to fit. ([#364](https://github.com/tddworks/ClaudeBar/issues/364))
 - Settings → Appearance → Native menu bar icons gives every provider account a monochrome mark that follows light and dark menu bars, while keeping quota colors. Off by default. ([#380](https://github.com/tddworks/ClaudeBar/pull/380))
 
 ### Changed
