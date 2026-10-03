@@ -376,8 +376,13 @@ struct MenuContentView: View {
     private var statusBadge: some View {
         let statusColor = selectedProviderBadge.badgeColor(theme)
 
-        // An outlined theme fills the badge with its status colour, inked.
+        // An outlined theme fills the badge with its status colour, inked —
+        // syncing and waiting with a light "in progress" colour, never dark.
         let outlined = theme.isOutlined
+        let fill: Color = switch selectedProviderBadge {
+        case .syncing, .awaitingData: theme.accentSecondary
+        default: statusColor
+        }
         return HStack(spacing: 6) {
             // Animated pulse dot
             PulsingStatusDot(
@@ -393,7 +398,7 @@ struct MenuContentView: View {
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: theme.pillCornerRadius)
-                .fill(outlined ? statusColor : theme.glassBackground)
+                .fill(outlined ? fill : theme.glassBackground)
                 .themeShadow(theme, scale: 0.5)
                 .overlay(
                     RoundedRectangle(cornerRadius: theme.pillCornerRadius)
@@ -989,16 +994,19 @@ struct MenuContentView: View {
                     ZStack {
                         Circle()
                             .fill(theme.shareGradient)
+                            .themeShadow(theme, scale: 0.6)
+                            .overlay(Circle().stroke(theme.isOutlined ? theme.glassBorder : .clear, lineWidth: theme.cardBorderWidth))
                             .frame(width: 32, height: 32)
 
+                        // On a printed theme's light candy fill, the icon is ink.
                         if isFetchingPasses {
                             ProgressView()
                                 .scaleEffect(0.5)
-                                .tint(.white)
+                                .tint(theme.isOutlined ? theme.textPrimary : .white)
                         } else {
                             Image(systemName: "gift.fill")
                                 .popoverFont(12, weight: .bold)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(theme.isOutlined ? theme.textPrimary : .white)
                         }
                     }
                 }
@@ -1017,6 +1025,8 @@ struct MenuContentView: View {
                 ZStack {
                     Circle()
                         .fill(theme.glassBackground)
+                        .themeShadow(theme, scale: 0.6)
+                        .overlay(Circle().stroke(theme.isOutlined ? theme.glassBorder : .clear, lineWidth: theme.cardBorderWidth))
                         .frame(width: 32, height: 32)
 
                     Image(systemName: "gearshape.fill")
@@ -1043,6 +1053,8 @@ struct MenuContentView: View {
                 ZStack {
                     Circle()
                         .fill(theme.glassBackground)
+                        .themeShadow(theme, scale: 0.6)
+                        .overlay(Circle().stroke(theme.isOutlined ? theme.glassBorder : .clear, lineWidth: theme.cardBorderWidth))
                         .frame(width: 32, height: 32)
 
                     Image(systemName: "xmark")
@@ -1500,7 +1512,7 @@ struct LoadingSpinnerView: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .stroke(theme.textTertiary, lineWidth: 3)
+                    .stroke(theme.isOutlined ? theme.progressTrack : theme.textTertiary, lineWidth: theme.isOutlined ? 4 : 3)
                     .frame(width: 50, height: 50)
 
                 Circle()
@@ -1556,26 +1568,39 @@ struct WrappedActionButton: View {
                 }
 
                 Text(label)
-                    .popoverFont(12, weight: .medium, design: theme.fontDesign)
+                    .popoverFont(12, weight: theme.isOutlined ? .bold : .medium, design: theme.fontDesign)
                     .fixedSize()
             }
-            .foregroundStyle(isHovering ? .white : theme.textPrimary)
+            .foregroundStyle(isHovering && !theme.isOutlined ? .white : theme.textPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
                 ZStack {
-                    Capsule()
-                        .fill(isHovering ? AnyShapeStyle(gradient) : AnyShapeStyle(theme.glassBackground))
+                    if theme.isOutlined {
+                        // Printed: a paper chip on a hard shadow, mint under the
+                        // pointer, sky while it works — never greyed out.
+                        Capsule()
+                            .fill(isLoading ? theme.accentSecondary : (isHovering ? theme.statusHealthy : theme.glassBackground))
+                            .themeShadow(theme, scale: isHovering ? 1 : 0.75)
+                    } else {
+                        Capsule()
+                            .fill(isHovering ? AnyShapeStyle(gradient) : AnyShapeStyle(theme.glassBackground))
+                    }
 
                     Capsule()
                         .stroke(theme.glassBorder, lineWidth: theme.cardBorderWidth)
                 }
             )
-            .shadow(color: isHovering ? theme.accentPrimary.opacity(0.3) : .clear, radius: 8, y: 2)
+            .offset(x: theme.isOutlined && isHovering ? -1 : 0, y: theme.isOutlined && isHovering ? -1 : 0)
+            .shadow(color: isHovering && !theme.isOutlined ? theme.accentPrimary.opacity(0.3) : .clear, radius: 8, y: 2)
+            .animation(.easeOut(duration: 0.12), value: isHovering)
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
-        .disabled(isLoading)
+        // A disabled button is dimmed; a printed theme shows its sky "working"
+        // chip at full strength instead, and simply ignores clicks meanwhile.
+        .disabled(isLoading && !theme.isOutlined)
+        .allowsHitTesting(!isLoading)
     }
 }
 
