@@ -66,118 +66,6 @@ extension ProviderLook {
     }
 }
 
-// MARK: - AntigravityProvider Visual Identity
-
-extension AntigravityProvider: ProviderVisualIdentity {
-    public var symbolIcon: String { "wand.and.stars" }
-
-    public var iconAssetName: String { "AntigravityIcon" }
-
-    public func themeColor(for scheme: ColorScheme) -> Color {
-        // Purple/magenta color matching Antigravity branding
-        scheme == .dark
-            ? Color(red: 0.72, green: 0.35, blue: 0.85)
-            : Color(red: 0.58, green: 0.22, blue: 0.72)
-    }
-
-    public func themeGradient(for scheme: ColorScheme) -> LinearGradient {
-        LinearGradient(
-            colors: [
-                themeColor(for: scheme),
-                scheme == .dark
-                    ? Color(red: 0.45, green: 0.25, blue: 0.75)
-                    : Color(red: 0.35, green: 0.15, blue: 0.65)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-}
-
-// MARK: - BedrockProvider Visual Identity
-
-extension BedrockProvider: ProviderVisualIdentity {
-    public var symbolIcon: String { "cloud.fill" }
-
-    public var iconAssetName: String { "BedrockIcon" }
-
-    public func themeColor(for scheme: ColorScheme) -> Color {
-        // AWS orange color
-        scheme == .dark
-            ? Color(red: 1.0, green: 0.6, blue: 0.2)
-            : Color(red: 0.92, green: 0.5, blue: 0.15)
-    }
-
-    public func themeGradient(for scheme: ColorScheme) -> LinearGradient {
-        LinearGradient(
-            colors: [
-                themeColor(for: scheme),
-                scheme == .dark
-                    ? Color(red: 0.85, green: 0.45, blue: 0.15)
-                    : Color(red: 0.75, green: 0.35, blue: 0.1)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-}
-
-// MARK: - MistralProvider Visual Identity
-
-extension MistralProvider: ProviderVisualIdentity {
-    public var symbolIcon: String { "cat.fill" }
-
-    public var iconAssetName: String { "MistralIcon" }
-
-    public func themeColor(for scheme: ColorScheme) -> Color {
-        // Mistral brand orange
-        scheme == .dark
-            ? Color(red: 1.0, green: 0.55, blue: 0.0)
-            : Color(red: 0.90, green: 0.45, blue: 0.0)
-    }
-
-    public func themeGradient(for scheme: ColorScheme) -> LinearGradient {
-        LinearGradient(
-            colors: [
-                themeColor(for: scheme),
-                scheme == .dark
-                    ? Color(red: 0.85, green: 0.35, blue: 0.10)
-                    : Color(red: 0.75, green: 0.25, blue: 0.05)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-}
-
-// MARK: - OmpProvider Visual Identity
-
-extension OmpProvider: ProviderVisualIdentity {
-    public var symbolIcon: String { "terminal.fill" }
-
-    public var iconAssetName: String { "OmpIcon" }
-
-    public func themeColor(for scheme: ColorScheme) -> Color {
-        // Oh My Pi green
-        scheme == .dark
-            ? Color(red: 0.30, green: 0.85, blue: 0.55)
-            : Color(red: 0.16, green: 0.62, blue: 0.38)
-    }
-
-    public func themeGradient(for scheme: ColorScheme) -> LinearGradient {
-        LinearGradient(
-            colors: [
-                themeColor(for: scheme),
-                scheme == .dark
-                    ? Color(red: 0.16, green: 0.62, blue: 0.42)
-                    : Color(red: 0.10, green: 0.48, blue: 0.30)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-}
-
 // MARK: - ExtensionProvider Visual Identity
 
 extension ExtensionProvider: ProviderVisualIdentity {
@@ -269,22 +157,6 @@ enum ProviderVisualIdentityLookup {
     static func color(for providerId: String, scheme: ColorScheme) -> Color {
         if let color = look(for: providerId)?.color { return color.color(for: scheme) }
         switch providerId {
-        case "antigravity":
-            return scheme == .dark
-                ? Color(red: 0.72, green: 0.35, blue: 0.85)
-                : Color(red: 0.58, green: 0.22, blue: 0.72)
-        case "bedrock":
-            return scheme == .dark
-                ? Color(red: 1.0, green: 0.6, blue: 0.2)
-                : Color(red: 0.92, green: 0.5, blue: 0.15)
-        case "mistral":
-            return scheme == .dark
-                ? Color(red: 1.0, green: 0.55, blue: 0.0)
-                : Color(red: 0.90, green: 0.45, blue: 0.0)
-        case "omp":
-            return scheme == .dark
-                ? Color(red: 0.30, green: 0.85, blue: 0.55)
-                : Color(red: 0.16, green: 0.62, blue: 0.38)
         default:
             return BaseTheme.purpleVibrant
         }
@@ -297,22 +169,6 @@ enum ProviderVisualIdentityLookup {
         let secondaryColor: Color
 
         switch providerId {
-        case "antigravity":
-            secondaryColor = scheme == .dark
-                ? Color(red: 0.45, green: 0.25, blue: 0.75)
-                : Color(red: 0.35, green: 0.15, blue: 0.65)
-        case "bedrock":
-            secondaryColor = scheme == .dark
-                ? Color(red: 0.85, green: 0.45, blue: 0.15)
-                : Color(red: 0.75, green: 0.35, blue: 0.1)
-        case "mistral":
-            secondaryColor = scheme == .dark
-                ? Color(red: 0.85, green: 0.35, blue: 0.10)
-                : Color(red: 0.75, green: 0.25, blue: 0.05)
-        case "omp":
-            secondaryColor = scheme == .dark
-                ? Color(red: 0.16, green: 0.62, blue: 0.42)
-                : Color(red: 0.10, green: 0.48, blue: 0.30)
         default:
             return LinearGradient(
                 colors: [BaseTheme.coralAccent, BaseTheme.pinkHot],
@@ -332,10 +188,6 @@ enum ProviderVisualIdentityLookup {
     static func iconAssetName(for providerId: String) -> String {
         if let icon = look(for: providerId)?.icon { return icon }
         switch providerId {
-        case "antigravity": return "AntigravityIcon"
-        case "bedrock": return "BedrockIcon"
-        case "mistral": return "MistralIcon"
-        case "omp": return "OmpIcon"
         default: return "QuestionIcon"
         }
     }
@@ -344,10 +196,6 @@ enum ProviderVisualIdentityLookup {
     static func name(for providerId: String) -> String {
         if let definition = Providers.definition(forLineupId: providerId) { return definition.profile.name }
         switch providerId {
-        case "antigravity": return "Antigravity"
-        case "bedrock": return "AWS Bedrock"
-        case "mistral": return "Mistral"
-        case "omp": return "Oh My Pi"
         default: return providerId.capitalized
         }
     }
@@ -356,10 +204,6 @@ enum ProviderVisualIdentityLookup {
     static func symbolIcon(for providerId: String) -> String {
         if let symbol = look(for: providerId)?.symbol { return symbol }
         switch providerId {
-        case "antigravity": return "wand.and.stars"
-        case "bedrock": return "cloud.fill"
-        case "mistral": return "cat.fill"
-        case "omp": return "terminal.fill"
         default:
             return extensionSymbols.withLock { $0[providerId] } ?? "questionmark.circle.fill"
         }

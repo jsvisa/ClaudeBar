@@ -1,4 +1,5 @@
 import Foundation
+import Mockable
 
 /// HOW TO GET THE BYTES — *Data fetching method*. A closed sum, one case per
 /// JSON tag, because the decoder must know every tag and the picker is a fixed
@@ -17,6 +18,147 @@ public enum Fetch: Sendable, Equatable {
     case command(CommandCall)
     /// A file on this Mac that some tool keeps up to date — the *File* choice.
     case file(FileCall)
+    /// An app's own server on this Mac, found through its running process.
+    case localServer(LocalServerCall)
+    /// A cloud's metrics, summed per dimension value — through `CloudWatchClient`.
+    case cloudWatch(CloudWatchCall)
+    /// A folder some tool fills — the names in it.
+    case directory(DirectoryCall)
+}
+
+/// `"directory": { "path": "~/.tool/logs", "match": "^session_" }` — the
+/// names of the entries in a folder, sorted; ready while the folder exists.
+public struct DirectoryCall: Sendable, Equatable, Codable {
+    public let path: String
+    /// A pattern an entry's name must match; every entry when absent.
+    public let match: String?
+
+    public init(path: String, match: String? = nil) {
+        self.path = path
+        self.match = match
+    }
+}
+
+/// `"cloudWatch": {…}` — today's sums of `metrics` in `namespace`, one row per
+/// `dimension` value in each region, read with the person's own cloud
+/// profile. With `prices`, each row's unit prices come with it from the
+/// `PriceCatalog`, so a mapping can turn usage into money.
+public struct CloudWatchCall: Sendable, Equatable, Codable {
+    public let namespace: String
+    public let dimension: String
+    public let metrics: [String]
+    /// Comma-separated — `"{{setting.regions}}"`.
+    public let regions: String
+    /// A named profile, or blank for the default credentials.
+    public let profile: String?
+    /// The service whose price list prices each dimension value.
+    public let prices: String?
+
+    public init(namespace: String, dimension: String, metrics: [String], regions: String, profile: String? = nil, prices: String? = nil) {
+        self.namespace = namespace
+        self.dimension = dimension
+        self.metrics = metrics
+        self.regions = regions
+        self.profile = profile
+        self.prices = prices
+    }
+
+    /// The regions named, without blanks or a template left unfilled.
+    var regionList: [String] {
+        regions.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty && !$0.contains("{{") }
+    }
+
+    /// The profile, unless it was left blank.
+    var profileName: String? {
+        guard let profile = profile?.trimmingCharacters(in: .whitespaces), !profile.isEmpty, !profile.contains("{{") else { return nil }
+        return profile
+    }
+}
+
+/// A cloud's metrics service. Implemented where its SDK is linked.
+@Mockable
+public protocol CloudWatchClient: Sendable {
+    /// Each `dimension` value's sum of each metric between `from` and `to`.
+    func sums(namespace: String, dimension: String, metrics: [String], region: String, profile: String?,
+              from: Date, to: Date) async throws -> [String: [String: Double]]
+}
+
+/// A cloud's price list: what each thing costs, as exact decimal texts by
+/// field — `{"input": "3", "output": "15", "per": "1000000", "name": "…"}`.
+@Mockable
+public protocol PriceCatalog: Sendable {
+    func prices(service: String, ids: [String]) async -> [String: [String: String]]
+}
+
+/// `"localServer": {…}` — an app that serves its usage on 127.0.0.1: its
+/// process is found by name (`pgrep`), the values it was started with read
+/// from its command line, its listening ports looked up (`lsof`), and the
+/// declared paths asked on each port in turn. Self-signed TLS is accepted on
+/// the loopback address only.
+public struct LocalServerCall: Sendable, Equatable, Codable {
+    /// Which process: its name contains one of `names`, and its command line
+    /// matches one of `match` (any, when empty).
+    public struct Process: Sendable, Equatable, Codable {
+        public let names: [String]
+        public let match: [String]
+
+        public init(names: [String], match: [String] = []) {
+            self.names = names
+            self.match = match
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            names = try container.decode([String].self, forKey: .names)
+            match = try container.decodeIfPresent([String].self, forKey: .match) ?? []
+        }
+    }
+
+    /// What `cli.missing` names when no such process runs — "Antigravity".
+    public let app: String
+    public let process: Process
+    /// Name → a pattern over the command line; its first group is the value,
+    /// filled as `{{name}}`.
+    public let values: [String: String]
+    /// Values the server can't be asked without: missing is *Key needed*.
+    public let required: [String]
+    /// Asked in order on every listening port; the first 200 answers.
+    public let paths: [String]
+    /// A value holding a port also asked over plain HTTP, last.
+    public let plainHTTPPort: String?
+    public let method: String
+    public let headers: [String: String]
+    public let body: String?
+    public let timeout: TimeInterval
+
+    public init(app: String, process: Process, values: [String: String] = [:], required: [String] = [], paths: [String],
+                plainHTTPPort: String? = nil, method: String = "POST", headers: [String: String] = [:], body: String? = nil,
+                timeout: TimeInterval = 8) {
+        self.app = app
+        self.process = process
+        self.values = values
+        self.required = required
+        self.paths = paths
+        self.plainHTTPPort = plainHTTPPort
+        self.method = method
+        self.headers = headers
+        self.body = body
+        self.timeout = timeout
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        app = try container.decode(String.self, forKey: .app)
+        process = try container.decode(Process.self, forKey: .process)
+        values = try container.decodeIfPresent([String: String].self, forKey: .values) ?? [:]
+        required = try container.decodeIfPresent([String].self, forKey: .required) ?? []
+        paths = try container.decode([String].self, forKey: .paths)
+        plainHTTPPort = try container.decodeIfPresent(String.self, forKey: .plainHTTPPort)
+        method = try container.decodeIfPresent(String.self, forKey: .method) ?? "POST"
+        headers = try container.decodeIfPresent([String: String].self, forKey: .headers) ?? [:]
+        body = try container.decodeIfPresent(String.self, forKey: .body)
+        timeout = try container.decodeIfPresent(TimeInterval.self, forKey: .timeout) ?? 8
+    }
 }
 
 /// `{ "path": "~/.tool/usage.json" }` — `~` and `${VAR:-default}` expand.
@@ -471,7 +613,7 @@ extension CLICall {
 // MARK: - JSON
 
 extension Fetch: Codable {
-    private static let tags = ["http", "jsonRpc", "cli", "command", "file"]
+    private static let tags = ["http", "jsonRpc", "cli", "command", "file", "localServer", "cloudWatch", "directory"]
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: TagKey.self)
@@ -484,6 +626,9 @@ extension Fetch: Codable {
         case "jsonRpc": self = .jsonRpc(try container.decode(JSONRPCCall.self, forKey: TagKey("jsonRpc")))
         case "file": self = .file(try container.decode(FileCall.self, forKey: TagKey("file")))
         case "command": self = .command(try container.decode(CommandCall.self, forKey: TagKey("command")))
+        case "localServer": self = .localServer(try container.decode(LocalServerCall.self, forKey: TagKey("localServer")))
+        case "cloudWatch": self = .cloudWatch(try container.decode(CloudWatchCall.self, forKey: TagKey("cloudWatch")))
+        case "directory": self = .directory(try container.decode(DirectoryCall.self, forKey: TagKey("directory")))
         default: self = .cli(try container.decode(CLICall.self, forKey: TagKey("cli")))
         }
     }
@@ -497,6 +642,9 @@ extension Fetch: Codable {
         case .cli(let call): try container.encode(call, forKey: TagKey("cli"))
         case .command(let call): try container.encode(call, forKey: TagKey("command"))
         case .file(let call): try container.encode(call, forKey: TagKey("file"))
+        case .localServer(let call): try container.encode(call, forKey: TagKey("localServer"))
+        case .cloudWatch(let call): try container.encode(call, forKey: TagKey("cloudWatch"))
+        case .directory(let call): try container.encode(call, forKey: TagKey("directory"))
         }
     }
 }

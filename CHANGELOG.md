@@ -9,9 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Settings → Appearance → Popover Text Size makes the popover's card titles, reset countdowns and "Updated just now" up to 1.4× bigger, and widens the window so nothing truncates. ([#364](https://github.com/tddworks/ClaudeBar/issues/364))
+- Each added Claude account now shows its own today's usage and 30-day chart, read from its own config folder's logs, instead of none. ([#358](https://github.com/tddworks/ClaudeBar/issues/358))
+- A Daily usage — last 30 days chart below today's usage cards shows each day's cost, tokens or cache use, with the 30-day total; hover a bar for its day. Past days are kept, so only today's logs are read. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
 - Settings → Appearance → Native menu bar icons gives every provider account a monochrome mark that follows light and dark menu bars, while keeping quota colors. Off by default. ([#380](https://github.com/tddworks/ClaudeBar/pull/380))
 
 ### Changed
+- Claude's daily usage cost uses current list prices for the newest models (Opus 5.5, Sonnet 5.5, Fable 5.1, Opus 4.5–4.7, Sonnet 4.5), and Claude's prices now live in a data file. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
+- Mistral's today and yesterday totals now come from the same Usage History as Claude's; nothing changes on screen. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
+- Oh My Pi shows a capped dollar limit as money left of its cap, and its cards use their full labels in the menu bar. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
+- AWS Bedrock shows today's spend as one cost card with a line per model, judged by your daily budget instead of a "Daily Budget" quota. Profile changes apply without a restart, and AWS errors show instead of hiding Bedrock. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
+- Antigravity's 5-hour quotas show a 5-hour window, where some showed a week. With the app closed, a stale sign-in now says so instead of "not running". ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
 - Gemini supports separate accounts, each signed in under its own `GEMINI_CLI_HOME` folder, and no longer shows a guessed 7-day window on its quotas. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
 - Alibaba supports separate accounts, each with its own API key or console cookie and region. A pasted cookie is tried before the browser's, and the monthly window is the real billing month. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
 - Copilot supports separate accounts, each with its own token, and works with just the GitHub CLI signed in (`gh auth login`). An unlimited plan shows its plan instead of a made-up 100% card, and an organization seat's entered usage is used only while GitHub reports none. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))

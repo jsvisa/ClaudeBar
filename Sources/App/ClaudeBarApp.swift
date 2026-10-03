@@ -2,6 +2,7 @@ import SwiftUI
 import Domain
 import Infrastructure
 import Providers
+import AWSClients
 import MenuBarExtraAccess
 #if ENABLE_SPARKLE
 import Sparkle
@@ -27,10 +28,12 @@ struct ClaudeBarApp: App {
         accounts: [ProviderAccountConfig] = [],
         secrets: (any SecretVault)? = nil,
         guestPasses: GuestPasses? = nil,
+        usageHistory: UsageHistory? = nil,
         environment: @escaping @Sendable (String) -> String? = { ProcessInfo.processInfo.environment[$0] }
     ) -> Provider {
         do {
-            return try Providers.make(id, settings: settings, accounts: accounts, secrets: secrets, guestPasses: guestPasses, environment: environment)
+            return try Providers.make(id, settings: settings, accounts: accounts, secrets: secrets, guestPasses: guestPasses,
+                                      usageHistory: usageHistory, environment: environment)
         } catch {
             preconditionFailure("Built-in provider '\(id)' failed to load: \(error.localizedDescription)")
         }
@@ -42,9 +45,6 @@ struct ClaudeBarApp: App {
 
     /// Monitors Claude Code sessions via hook events
     @State private var sessionMonitor: SessionMonitor
-
-    /// Today's usage from local session logs — beside the providers, not in them.
-    @State private var usageHistory: UsageHistory
 
     /// Drives the menu-bar pixels and the background-refresh lifecycle
     /// imperatively, outside SwiftUI — the MenuBarExtra label hosting can
@@ -113,13 +113,6 @@ struct ClaudeBarApp: App {
                 claudeBinary: { settingsRepository.cliPath(forProvider: "claude") ?? "claude" }
             ))
         )
-        // Today's usage is read from local session logs, not a meter, so it
-        // lives beside the providers: Claude's logs are its default login's
-        // (#190 keeps loopback inference free).
-        let usageHistory = UsageHistory(logs: [
-            "claude": ClaudeDailyUsageAnalyzer(isLocallyServed: { ClaudeLocalInferenceDetector.isLocallyServed() }),
-        ])
-        self.usageHistory = usageHistory
         // Codex is data: Modules/Providers/Resources/Providers/codex.json — the
         // product once, with the logins added beside the default one (#326).
         let codex = Self.builtIn("codex", settings: settingsRepository, accounts: settingsRepository.accounts(forProvider: "codex"))
@@ -147,6 +140,18 @@ struct ClaudeBarApp: App {
                                    accounts: settingsRepository.accounts(forProvider: "alibaba"), secrets: vault)
         let gemini = Self.builtIn("gemini", settings: settingsRepository,
                                   accounts: settingsRepository.accounts(forProvider: "gemini"))
+        let antigravity = Self.builtIn("antigravity", settings: settingsRepository)
+        // Bedrock's metrics and prices come from the AWS SDK, linked by AWSClients alone.
+        let bedrock: Provider = {
+            do {
+                return try Providers.make("bedrock", settings: settingsRepository,
+                                          cloudWatch: AWSClients.makeCloudWatch(), priceCatalog: AWSClients.makePriceCatalog())
+            } catch {
+                preconditionFailure("Built-in provider 'bedrock' failed to load: \(error.localizedDescription)")
+            }
+        }()
+        let omp = Self.builtIn("omp", settings: settingsRepository)
+        let mistral = Self.builtIn("mistral", settings: settingsRepository)
         let kimi = Self.builtIn("kimi", settings: settingsRepository,
                                 accounts: settingsRepository.accounts(forProvider: "kimi"), secrets: vault)
         let openCodeGo = Self.builtIn("opencode-go", settings: settingsRepository,
@@ -180,13 +185,10 @@ struct ClaudeBarApp: App {
             claude.defaultAccount,
             codex.defaultAccount,
             gemini.defaultAccount,
-            AntigravityProvider(probe: AntigravityUsageProbe(), settingsRepository: settingsRepository),
+            antigravity.defaultAccount,
             zai.defaultAccount,
             copilot.defaultAccount,
-            BedrockProvider(
-                probe: BedrockUsageProbe(settingsRepository: settingsRepository),
-                settingsRepository: settingsRepository
-            ),
+            bedrock.defaultAccount,
             amp.defaultAccount,
             kimi.defaultAccount,
             kiro.defaultAccount,
@@ -195,15 +197,9 @@ struct ClaudeBarApp: App {
             deepseek.defaultAccount,
             vercel.defaultAccount,
             alibaba.defaultAccount,
-            MistralProvider(
-                probe: MistralUsageProbe(),
-                settingsRepository: settingsRepository
-            ),
+            mistral.defaultAccount,
             openCodeGo.defaultAccount,
-            OmpProvider(
-                probe: OmpUsageProbe(),
-                settingsRepository: settingsRepository
-            ),
+            omp.defaultAccount,
             grok.defaultAccount,
             commandCode.defaultAccount,
         ])
@@ -251,7 +247,6 @@ struct ClaudeBarApp: App {
         notchDriver = NotchWindowDriver(
             monitor: monitor,
             sessionMonitor: sessionMonitor,
-            usageHistory: usageHistory,
             settings: AppSettings.shared
         )
         notchDriver.startWhenLaunched()
@@ -396,14 +391,14 @@ struct ClaudeBarApp: App {
         MenuBarExtra {
             Group {
                 #if ENABLE_SPARKLE
-                MenuContentView(monitor: monitor, sessionMonitor: sessionMonitor, quotaAlerter: quotaAlerter, usageHistory: usageHistory, onClose: { isMenuPresented = false }) { enabled in
+                MenuContentView(monitor: monitor, sessionMonitor: sessionMonitor, quotaAlerter: quotaAlerter, onClose: { isMenuPresented = false }) { enabled in
                         if enabled { startHookServer() } else { stopHookServer() }
                     }
                     .appThemeProvider(themeModeId: settings.themeMode)
                     .environment(\.popoverTextSize, settings.popoverTextSize)
                     .environment(\.sparkleUpdater, sparkleUpdater)
                 #else
-                MenuContentView(monitor: monitor, sessionMonitor: sessionMonitor, quotaAlerter: quotaAlerter, usageHistory: usageHistory, onClose: { isMenuPresented = false }) { enabled in
+                MenuContentView(monitor: monitor, sessionMonitor: sessionMonitor, quotaAlerter: quotaAlerter, onClose: { isMenuPresented = false }) { enabled in
                         if enabled { startHookServer() } else { stopHookServer() }
                     }
                     .appThemeProvider(themeModeId: settings.themeMode)
