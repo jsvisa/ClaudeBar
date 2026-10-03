@@ -110,19 +110,19 @@ struct CostStatCard: View {
                     ForEach(Array(costUsage.lines.prefix(3).enumerated()), id: \.offset) { _, line in
                         HStack(spacing: 6) {
                             Text(line.label)
-                                .font(.system(size: 10, weight: .medium, design: theme.fontDesign))
+                                .popoverFont(10, weight: .medium, design: theme.fontDesign)
                                 .foregroundStyle(theme.textSecondary)
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Text(line.formattedAmount)
-                                .font(.system(size: 10, weight: .semibold, design: theme.fontDesign))
+                                .popoverFont(10, weight: .semibold, design: theme.fontDesign)
                                 .foregroundStyle(theme.textPrimary)
                         }
                         .help(line.detail ?? line.label)
                     }
                     if costUsage.lines.count > 3 {
                         Text("and \(costUsage.lines.count - 3) more")
-                            .font(.system(size: 9, weight: .medium, design: theme.fontDesign))
+                            .popoverFont(9, weight: .medium, design: theme.fontDesign)
                             .foregroundStyle(theme.textTertiary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
