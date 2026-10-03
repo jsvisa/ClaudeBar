@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Settings → Appearance → Popover Text Size makes the popover's card titles, reset countdowns and "Updated just now" up to 1.4× bigger, and widens the window so nothing truncates. ([#364](https://github.com/tddworks/ClaudeBar/issues/364))
-- Pop theme: cream dotted paper, thick ink outlines, hard shadows, candy-coloured status and chunky numbers. Pick it in Settings → Appearance. ([#435](https://github.com/tddworks/ClaudeBar/pull/435))
+- Show Provider Logo (Settings → Menu Bar) starts the menu bar readout with the provider's logo even when it's the only one. Off by default. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
+- Pop theme: cream dotted paper, thick ink outlines, hard shadows, candy-coloured status and chunky numbers, with each menu-bar quota as a candy chip. Pick it in Settings → Appearance. ([#435](https://github.com/tddworks/ClaudeBar/pull/435))
 - Hide account emails: the eye beside the account in the popover, or Settings → Menu Bar → Hide Account Emails, masks emails as s•••@g•••.com in the popover and menu bar, and remembers it. ([#375](https://github.com/tddworks/ClaudeBar/issues/375))
 - Each added Claude account now shows its own today's usage and 30-day chart, read from its own config folder's logs, instead of none. ([#358](https://github.com/tddworks/ClaudeBar/issues/358))
 - A Daily usage — last 30 days chart below today's usage cards shows each day's cost, tokens or cache use, with the 30-day total; hover a bar for its day. Past days are kept, so only today's logs are read. ([#331](https://github.com/tddworks/ClaudeBar/issues/331))
@@ -51,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Providers you made with Add Provider can have more than one account: Add Account asks for each account's API key, kept in your Keychain for that account only. ([#308](https://github.com/tddworks/ClaudeBar/issues/308))
 - Claude and Codex accounts: Settings → Providers → Accounts adds a login by signing in with your browser or choosing a signed-in folder, then names, reorders, pins, pauses, removes and re-signs-in each one. ([#308](https://github.com/tddworks/ClaudeBar/issues/308))
 - Accounts: with one Codex account the tab shows "Codex" again; with several, each shows its name or email. Menu bar labels stay short (`work`, `Side Project`) and are numbered when alike instead of widening to a full email. ([#308](https://github.com/tddworks/ClaudeBar/issues/308))
+- Providers: put your busiest assistant first — Settings → Providers has up/down controls per provider, and the menu bar pills, overview and ⌘1–⌘9 shortcuts all follow your order. ([#141](https://github.com/tddworks/ClaudeBar/issues/141))
 - Hide quotas you don't use: Settings → Providers → a provider → Quotas. A hidden quota disappears everywhere (popover, menu bar, Touch Bar, notch, status export, Notify!) and no longer sets a status or an alert. ([#140](https://github.com/tddworks/ClaudeBar/issues/140))
 - Menu bar: turn off Show Account Labels in Menu Bar in Settings to hide account names and emails while keeping icons, quotas, and hover details. ([#365](https://github.com/tddworks/ClaudeBar/pull/365))
 - Share a provider you made: Export… saves it as a file without your keys; Import… shows where it sends a key and any command it runs before you add it, then asks for your own key. ([#355](https://github.com/tddworks/ClaudeBar/issues/355))

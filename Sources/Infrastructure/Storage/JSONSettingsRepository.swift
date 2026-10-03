@@ -85,6 +85,14 @@ public final class JSONSettingsRepository:
         store.write(value: enabled, key: "app.menuBarAccountLabelsEnabled")
     }
 
+    public func menuBarProviderLogoEnabled() -> Bool {
+        store.read(key: "app.menuBarProviderLogoEnabled") ?? false
+    }
+
+    public func setMenuBarProviderLogoEnabled(_ enabled: Bool) {
+        store.write(value: enabled, key: "app.menuBarProviderLogoEnabled")
+    }
+
     public func menuBarStackedEnabled() -> Bool {
         store.read(key: "app.menuBarStackedEnabled") ?? false
     }
@@ -383,6 +391,16 @@ public final class JSONSettingsRepository:
     public func setCustomCardURL(_ url: String?, forProvider id: String) {
         let value: Any? = (url?.isEmpty == false) ? url : nil
         store.write(value: value, key: "providers.\(id).customCardURL")
+    }
+
+    public func providerOrder() -> [String] {
+        store.read(key: "providers.order") ?? []
+    }
+
+    /// An empty order removes the key, so the file keeps meaning "use the
+    /// registration order" when nothing is stored — same rule as customCardURL.
+    public func setProviderOrder(_ order: [String]) {
+        store.write(value: order.isEmpty ? nil : order, key: "providers.order")
     }
 
     public func hiddenQuotaKeys(forProvider id: String) -> Set<String> {
