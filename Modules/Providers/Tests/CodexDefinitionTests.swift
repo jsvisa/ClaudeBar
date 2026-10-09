@@ -162,6 +162,44 @@ struct CodexDefinitionTests {
         #expect(codex.defaultAccount.lastFailedStep == .mapping)
     }
 
+    // MARK: - A login the file system doesn't hold
+
+    // https://github.com/tddworks/ClaudeBar/issues/525
+    @Test
+    func `should fetch over RPC when Codex keeps its login in the keyring and there is no auth.json`() async throws {
+        let stub = try StubbedProvider(providerId: "codex")
+        defer { stub.cleanUp() }
+        try FileManager.default.removeItem(at: stub.home.appendingPathComponent(".codex/auth.json"))
+        given(stub.cli).locate(.any).willReturn("/usr/local/bin/codex")
+        given(stub.cli).execute(binary: .matching { $0 == "codex" },
+                                args: .matching { $0 == ["login", "status"] },
+                                input: .any, timeout: .any, workingDirectory: .any, autoResponses: .any)
+            .willReturn(CLIResult(output: "Logged in using ChatGPT"))
+        stub.answerRPC(#"{"id":2,"result":{"rateLimits":{"planType":"pro","primary":{"usedPercent":30,"resetsAt":1735000000,"windowDurationMins":300},"secondary":{"usedPercent":50,"resetsAt":1735500000}}}}"#)
+        let codex = try stub.make("codex")
+
+        let usage = try await codex.refreshPlain()
+
+        #expect(usage.quota(for: .session)?.percentRemaining == 70)
+        #expect(usage.quota(for: .weekly)?.percentRemaining == 50)
+        #expect(codex.defaultAccount.lastError == nil)
+    }
+
+    @Test
+    func `should still ask to sign in when the CLI answers that it is not signed in and there is no auth.json`() async throws {
+        let stub = try StubbedProvider(providerId: "codex")
+        defer { stub.cleanUp() }
+        try FileManager.default.removeItem(at: stub.home.appendingPathComponent(".codex/auth.json"))
+        given(stub.cli).locate(.any).willReturn("/usr/local/bin/codex")
+        given(stub.cli).execute(binary: .any, args: .any, input: .any, timeout: .any, workingDirectory: .any, autoResponses: .any)
+            .willReturn(CLIResult(output: "Not logged in", exitCode: 1))
+        stub.answerRPC(#"{"id":2,"result":{"rateLimits":{"planType":"pro"}}}"#)
+        let codex = try stub.make("codex")
+
+        await #expect(throws: UsageError.authenticationRequired) { try await codex.refreshPlain() }
+        #expect(codex.defaultAccount.lastFailedStep == .lookup)
+    }
+
     // MARK: - API
 
     @Test
