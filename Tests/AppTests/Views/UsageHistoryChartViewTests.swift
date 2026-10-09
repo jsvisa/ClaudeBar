@@ -49,6 +49,8 @@ struct UsageHistoryChartViewTests {
     private func rendered<V: View>(of view: V) -> Data? {
         let renderer = ImageRenderer(content: view.frame(width: 400))
         renderer.scale = 1
-        return renderer.cgImage.flatMap { $0.dataProvider?.data as Data? }
+        return renderer.cgImage.flatMap { image in
+            image.dataProvider.flatMap { (($0.data as NSData?) as Data?) }
+        }
     }
 }
