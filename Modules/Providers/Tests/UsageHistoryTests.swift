@@ -263,6 +263,9 @@ struct UsageHistoryTests {
         let days = try #require(history.lastThirtyDays)
         #expect(days.stats.count == 30)
         #expect(days.stats.allSatisfy { !$0.isEmpty }, "the demo writes a session every day of the month")
+        // The demo's records name a model, so the chart offers its split.
+        #expect(days.hasModels)
+        #expect(days.lines(of: days.stats[29]).map(\.model) == ["claude-sonnet-sample"])
     }
 
     // MARK: - Kept days
