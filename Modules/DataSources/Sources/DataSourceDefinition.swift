@@ -34,6 +34,12 @@ public struct DataSourceDefinition: Sendable, Equatable, Codable {
     /// Files that must exist before anything runs — a CLI that finds no
     /// login may open a browser login on its own (#216). Missing: *Key needed*.
     public let requiresFiles: [String]
+    /// A command whose success (exit 0) confirms the CLI is signed in, for a
+    /// login the file system doesn't hold — a keyring (#525). A missing
+    /// `requiresFiles` entry then asks this command instead of refusing, and
+    /// *Configured* follows its answer. It reports status only: it must never
+    /// start a login (#216).
+    public let loginCheck: CommandCall?
     /// The credential must belong to this account, before and after the fetch.
     public let identity: Identity?
     /// A background or popover-open refresh must not run this data source
@@ -61,6 +67,7 @@ public struct DataSourceDefinition: Sendable, Equatable, Codable {
         context: [String: JSONFileCredential] = [:],
         recover: [String: Recovery] = [:],
         requiresFiles: [String] = [],
+        loginCheck: CommandCall? = nil,
         identity: Identity? = nil,
         verifyBeforeBackground: Bool = false,
         unverifiedMessage: String? = nil,
@@ -80,6 +87,7 @@ public struct DataSourceDefinition: Sendable, Equatable, Codable {
         self.context = context
         self.recover = recover
         self.requiresFiles = requiresFiles
+        self.loginCheck = loginCheck
         self.identity = identity
         self.verifyBeforeBackground = verifyBeforeBackground
         self.unverifiedMessage = unverifiedMessage
@@ -102,6 +110,7 @@ public struct DataSourceDefinition: Sendable, Equatable, Codable {
         context = try container.decodeIfPresent([String: JSONFileCredential].self, forKey: .context) ?? [:]
         recover = try container.decodeIfPresent([String: Recovery].self, forKey: .recover) ?? [:]
         requiresFiles = try container.decodeIfPresent([String].self, forKey: .requiresFiles) ?? []
+        loginCheck = try container.decodeIfPresent(CommandCall.self, forKey: .loginCheck)
         identity = try container.decodeIfPresent(Identity.self, forKey: .identity)
         verifyBeforeBackground = try container.decodeIfPresent(Bool.self, forKey: .verifyBeforeBackground) ?? false
         unverifiedMessage = try container.decodeIfPresent(String.self, forKey: .unverifiedMessage)
@@ -133,6 +142,7 @@ public struct DataSourceDefinition: Sendable, Equatable, Codable {
         try container.encode(context, forKey: .context)
         try container.encode(recover, forKey: .recover)
         try container.encode(requiresFiles, forKey: .requiresFiles)
+        try container.encodeIfPresent(loginCheck, forKey: .loginCheck)
         try container.encodeIfPresent(identity, forKey: .identity)
         try container.encode(verifyBeforeBackground, forKey: .verifyBeforeBackground)
         try container.encodeIfPresent(unverifiedMessage, forKey: .unverifiedMessage)
@@ -143,7 +153,7 @@ public struct DataSourceDefinition: Sendable, Equatable, Codable {
 
     private enum CodingKeys: String, CodingKey {
         case kind, label, summary, note, hidden, credential, fetch, mapping, fallback, fallbackOn, cache, context,
-             recover, requiresFiles, identity, verifyBeforeBackground, unverifiedMessage, errors
+             recover, requiresFiles, loginCheck, identity, verifyBeforeBackground, unverifiedMessage, errors
     }
 }
 

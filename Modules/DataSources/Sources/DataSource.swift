@@ -19,6 +19,7 @@ public struct DataSource: Sendable {
     private let contextFiles: [String: JSONFileReader]
     private let recoveries: [String: any Recovering]
     private let requiredFiles: [String]
+    private let loginCheck: LoginChecker?
     private let memory: UsageMemory
     private let now: @Sendable () -> Date
 
@@ -32,6 +33,7 @@ public struct DataSource: Sendable {
         contextFiles: [String: JSONFileReader],
         recoveries: [String: any Recovering],
         requiredFiles: [String] = [],
+        loginCheck: LoginChecker? = nil,
         now: @escaping @Sendable () -> Date
     ) {
         self.definition = definition
@@ -43,6 +45,7 @@ public struct DataSource: Sendable {
         self.contextFiles = contextFiles
         self.recoveries = recoveries
         self.requiredFiles = requiredFiles
+        self.loginCheck = loginCheck
         self.memory = UsageMemory()
         self.now = now
     }
@@ -66,10 +69,11 @@ public struct DataSource: Sendable {
         return (try? credentials.find()) != nil
     }
 
-    /// *Configured*: the files it needs exist, the key answers (when one is
-    /// needed), belongs to the expected account, and the CLI exists.
+    /// *Configured*: the files it needs exist — or its login check says the
+    /// CLI is signed in anyway — the key answers (when one is needed),
+    /// belongs to the expected account, and the CLI exists.
     public func isReady() async -> Bool {
-        guard requiredFiles.allSatisfy({ FileManager.default.fileExists(atPath: $0) }) else { return false }
+        guard await requiredFilesHold() else { return false }
         var credential: Credential?
         if let credentials {
             guard let found = try? credentials.find() else { return false }
@@ -181,9 +185,11 @@ public struct DataSource: Sendable {
 
     private func fetch() async throws -> (response: Response, credential: Credential?) {
         for file in requiredFiles where !FileManager.default.fileExists(atPath: file) {
-            // ClaudeBar never starts a login itself (#216).
-            AppLog.probes.error("\(providerId) \(kind): no \(file) — refusing to run")
-            throw DataSourceError(.lookup, .authenticationRequired)
+            guard await missingFileExcused(file) else {
+                // ClaudeBar never starts a login itself (#216).
+                AppLog.probes.error("\(providerId) \(kind): no \(file) — refusing to run")
+                throw DataSourceError(.lookup, .authenticationRequired)
+            }
         }
         var found = try lookUp()
         try checkIdentity(found?.credential)
@@ -192,6 +198,25 @@ public struct DataSource: Sendable {
             try checkIdentity((try? credentials?.find())?.credential)
         }
         return result
+    }
+
+    /// Every required file is on disk — or each missing one is excused by
+    /// the login check (#525).
+    private func requiredFilesHold() async -> Bool {
+        for file in requiredFiles where !FileManager.default.fileExists(atPath: file) {
+            guard await missingFileExcused(file) else { return false }
+        }
+        return true
+    }
+
+    /// `true` when a missing required file may be missed: the definition's
+    /// login check says the CLI is signed in anyway — the login may live
+    /// outside the file, as a keyring does (#525). Without a check, a
+    /// missing file is *Key needed*.
+    private func missingFileExcused(_ file: String) async -> Bool {
+        guard let loginCheck else { return false }
+        AppLog.probes.info("\(providerId) \(kind): no \(file) — asking \(loginCheck.call.cli) whether it is signed in")
+        return await loginCheck.isSignedIn()
     }
 
     private func fetchWith(_ found: inout FoundCredential?) async throws -> (response: Response, credential: Credential?) {
@@ -314,6 +339,38 @@ extension UsageError {
 struct FoundCredential: Sendable {
     var credential: Credential
     let save: (@Sendable (Credential) -> Void)?
+}
+
+/// `loginCheck` — the definition's status command, run when a required file
+/// is missing: a clean exit says the CLI is signed in anyway, for a login
+/// the file system doesn't hold — a keyring (#525). Everything else — a
+/// non-zero exit, a CLI not on this Mac, a command that cannot start — is
+/// *not signed in*. It reports status only: it never starts a login (#216).
+struct LoginChecker: Sendable {
+    let call: CommandCall
+    let makeExecutor: CommandFetcher.MakeExecutor
+
+    func isSignedIn() async -> Bool {
+        let executor = makeExecutor(call.environment)
+        guard executor.locate(call.cli) != nil else {
+            AppLog.probes.info("'\(call.cli)' not found in PATH — the login check can't ask")
+            return false
+        }
+        do {
+            let result = try await executor.execute(
+                binary: call.cli,
+                args: call.args,
+                input: call.input,
+                timeout: call.timeout,
+                workingDirectory: call.workingDirectory?.url,
+                autoResponses: [:]
+            )
+            return result.exitCode == 0
+        } catch {
+            AppLog.probes.warning("\(call.cli) login check could not run; treated as not signed in")
+            return false
+        }
+    }
 }
 
 /// What a mapping may read besides the response: the credential values it was

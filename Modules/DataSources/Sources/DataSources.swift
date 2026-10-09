@@ -185,6 +185,7 @@ public enum DataSources {
             requiredFiles: definition.requiresFiles.map {
                 Paths.expand($0, homeDirectory: homeDirectory, environment: environment)
             },
+            loginCheck: definition.loginCheck.map { LoginChecker(call: $0, makeExecutor: makeCommandExecutor) },
             now: now
         )
     }

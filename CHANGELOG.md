@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Codex with a keyring login**: with your login kept in the macOS keychain and no `auth.json` on disk, Codex now asks `codex login status` instead of always asking you to sign in, so usage comes through again. ([#525](https://github.com/tddworks/ClaudeBar/issues/525))
 - **Leaderboard tab on refresh**: opening the popover, Refresh or a new upload keeps your rank and the board on screen until the new ones arrive, instead of going back to *Loading…*; if updating fails, the last board stays with a note. ([#524](https://github.com/tddworks/ClaudeBar/pull/524))
 
 ### Added

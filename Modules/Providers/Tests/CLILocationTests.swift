@@ -61,6 +61,19 @@ struct CLILocationTests {
         #expect(codex.dataSources(for: codex.defaultAccount).compactMap(cli).allSatisfy { $0 == "/custom/missing/codex" })
     }
 
+    // https://github.com/tddworks/ClaudeBar/issues/525
+    @Test
+    func `should ask the keyring login check at the chosen location too`() throws {
+        let stub = try StubbedProvider(providerId: "codex")
+        defer { stub.cleanUp() }
+        stub.settings.setCLIPath("/custom/codex", forProvider: "codex")
+
+        let codex = try stub.makeProvider("codex", isExecutable: { $0 == Self.app }, locate: { _ in nil })
+
+        #expect(codex.dataSources(for: codex.defaultAccount).compactMap(\.definition.loginCheck?.cli)
+            .allSatisfy { $0 == "/custom/codex" })
+    }
+
     @Test
     func `should sign in with the CLI inside the app`() async throws {
         let stub = try StubbedProvider(providerId: "codex")

@@ -461,9 +461,9 @@ public struct ProviderDefinition: Sendable, Equatable, Codable {
 
     /// The same definition running `binary` instead of its CLI's name — the
     /// person's *CLI location* (#210). Only the executable changes: every
-    /// CLI and JSON-RPC data source and every credential refresh that runs
-    /// the CLI keeps its arguments, prompts and timing, and so does Add
-    /// Account's sign-in. The value reaches a
+    /// CLI and JSON-RPC data source, every login check and every credential
+    /// refresh that runs the CLI keeps its arguments, prompts and timing,
+    /// and so does Add Account's sign-in. The value reaches a
     /// subprocess as argv[0], never a shell command line. An empty,
     /// whitespace-only or unchanged name is a no-op.
     public func runningCLI(_ binary: String) throws -> ProviderDefinition {
@@ -473,6 +473,10 @@ public struct ProviderDefinition: Sendable, Equatable, Codable {
             var patch: [String: JSONValue] = [:]
             let fetch = source.fetch.runningCLI(cli, at: binary)
             if fetch != source.fetch { patch["fetch"] = try Self.json(fetch) }
+            if let check = source.loginCheck {
+                let repointed = check.runningCLI(cli, at: binary)
+                if repointed != check { patch["loginCheck"] = try Self.json(repointed) }
+            }
             if let credential = source.credential {
                 let repointed = credential.runningCLI(cli, at: binary)
                 if repointed != credential { patch["credential"] = try Self.json(repointed) }

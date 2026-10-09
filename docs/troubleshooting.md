@@ -85,7 +85,9 @@ Every provider runs on the same engine, so its log lines have the same shape: `<
 |---|---|
 | `<login> <source> failed (…), trying <other>` / `handed off to <other> (<reason>)` | The data source failed (or found no key) and the next one is being tried. Not an error on its own |
 | `<login>: every data source failed; reporting <reason>` | Nothing answered; `<reason>` is the error the card shows |
-| `<login> <source>: no <file> — refusing to run` | A file the data source needs (a signed-in folder's login) is gone. Sign in again |
+| `<login> <source>: no <file> — asking <cli> whether it is signed in` | The login file is gone, so the data source asks the CLI's status command (Codex: `codex login status` — a login the keychain keeps leaves no file). A clean exit keeps the fetch going |
+| `<login> <source>: no <file> — refusing to run` | A file the data source needs is gone and its login check doesn't say signed in either. Sign in again |
+| `<cli> login check could not run; treated as not signed in` | A login check's command couldn't run, which counts as not signed in |
 | `<login> <source>: HTTP 401, refreshing the token once` / `Token refresh refused (HTTP 400, …)` | The token was refused; a refused refresh means signing in again |
 | `<login> <source>: the credential changed on disk; using the new one` | The provider's own CLI renewed its login meanwhile. Fine |
 | `Running <cli> to renew its login` / `<cli> isn't installed, so its login can't be renewed` | A login the CLI owns (Gemini) is being renewed by running it |

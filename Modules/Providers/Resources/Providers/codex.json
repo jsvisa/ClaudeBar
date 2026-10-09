@@ -156,6 +156,7 @@
       },
       "fallback": "tty",
       "requiresFiles": ["${CODEX_HOME:-~/.codex}/auth.json"],
+      "loginCheck": {"cli": "codex", "args": ["login", "status"]},
       "verifyBeforeBackground": true,
       "unverifiedMessage": "Codex CLI session not checked. Click Refresh or Connect to check Codex status."
     },
@@ -350,7 +351,8 @@
           "whenEmpty": "Could not find usage limits in Codex output"
         }
       },
-      "requiresFiles": ["${CODEX_HOME:-~/.codex}/auth.json"]
+      "requiresFiles": ["${CODEX_HOME:-~/.codex}/auth.json"],
+      "loginCheck": {"cli": "codex", "args": ["login", "status"]}
     }
   ],
   "usageHistory": {
@@ -434,6 +436,7 @@
           }
         },
         "requiresFiles": ["{{account.codexHome}}/auth.json"],
+        "loginCheck": null,
         "identity": {
           "field": "account",
           "equals": "{{account.chatgptAccountId}}",

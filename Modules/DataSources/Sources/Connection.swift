@@ -104,6 +104,13 @@ extension CommandCall: Connection {
     func running(_ binary: String) -> CommandCall {
         CommandCall(cli: binary, args: args, input: input, timeout: timeout, workingDirectory: workingDirectory, environment: environment)
     }
+
+    /// Repoints this command at `binary` when it runs `cli` — *CLI location*
+    /// (#210) for a definition's `loginCheck` too. The same move
+    /// `Fetch.runningCLI` makes.
+    public func runningCLI(_ cli: String, at binary: String) -> CommandCall {
+        self.cli == cli ? running(binary) : self
+    }
 }
 
 extension CLICall: Connection {

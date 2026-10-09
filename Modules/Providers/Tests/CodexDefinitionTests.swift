@@ -39,6 +39,17 @@ struct CodexDefinitionTests {
         #expect(try api.makeProvider("codex").configuration.activeKind == "api")
     }
 
+    // https://github.com/tddworks/ClaudeBar/issues/525
+    @Test
+    func `should confirm a keyring login by asking the CLI before RPC and the terminal run`() throws {
+        let codex = try ProviderFactory.builtIn("codex")
+        let check = CommandCall(cli: "codex", args: ["login", "status"])
+
+        #expect(codex.dataSource("rpc")?.loginCheck == check)
+        #expect(codex.dataSource("tty")?.loginCheck == check)
+        #expect(codex.dataSource("api")?.loginCheck == nil)
+    }
+
     // MARK: - RPC
 
     @Test

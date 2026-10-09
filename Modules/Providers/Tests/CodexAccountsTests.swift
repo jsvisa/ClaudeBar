@@ -282,6 +282,20 @@ struct CodexAccountsTests {
         #expect(addedSources.first?.definition.identity?.equals == "work")
     }
 
+    // https://github.com/tddworks/ClaudeBar/issues/525
+    @Test
+    func `should keep an added login pinned to its auth file, asking no login check`() throws {
+        let stub = try StubbedProvider(providerId: "codex")
+        defer { stub.cleanUp() }
+        let folder = try writeLogin(in: stub.home, "work", email: "work@example.com", accountId: "work")
+        let codex = try stub.makeProvider("codex", accounts: [config("a", folder: folder, accountId: "work")])
+
+        let added = codex.dataSources(for: codex.accounts[1])
+
+        #expect(added.first?.definition.loginCheck == nil)
+        #expect(added.first?.definition.requiresFiles == ["\(folder.path)/auth.json"])
+    }
+
     @Test
     func `should apply the person's data source choice to every login`() throws {
         let stub = try StubbedProvider(providerId: "codex")
