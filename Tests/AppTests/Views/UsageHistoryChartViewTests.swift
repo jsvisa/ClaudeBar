@@ -6,7 +6,7 @@ import Quotas
 @testable import ClaudeBar
 
 /// The daily dashboard's thirty-day chart. It is the one card that used to
-/// start at no opacity and fade in when it appeared, so it drew a second or
+/// start at no opacity and fade in from `.onAppear`, so it drew a second or
 /// so after the popover opened — and never at all in a still render, which is
 /// how the demo's screenshots are taken. The cards beside it draw the moment
 /// they are there, and the popover fades itself in as one.
@@ -43,11 +43,16 @@ struct UsageHistoryChartViewTests {
 
     // MARK: - Rendering
 
-    /// What a view draws, as bytes — two renders of the same size that differ
-    /// differ in ink, whatever order the pixels are in.
+    /// What a view draws, as bytes — two renders the same size that differ
+    /// differ in ink, whatever order their pixels are in. The theme is the
+    /// popover's own: the environment's default paints nothing, and a card
+    /// with no ink cannot be told apart from one nobody can see.
     @MainActor
     private func rendered<V: View>(of view: V) -> Data? {
-        let renderer = ImageRenderer(content: view.frame(width: 400))
+        let theme = ThemeRegistry.shared.resolveTheme(for: "light", systemColorScheme: .light)
+        let renderer = ImageRenderer(content: view
+            .frame(width: 400)
+            .environment(\.appTheme, theme))
         renderer.scale = 1
         return renderer.cgImage.flatMap { image in
             image.dataProvider.flatMap { (($0.data as NSData?) as Data?) }
