@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The 30-day chart**: the *Daily usage — last 30 days* card draws as soon as the popover opens, the way the cards above it do — before, it stayed invisible for a second and never appeared at all in a screenshot. ([#536](https://github.com/tddworks/ClaudeBar/pull/536))
+
 ### Added
 - **Your own popover title**: name the popover header your own way, such as your team's name, in place of *ClaudeBar* (Settings → Appearance → Popover Title). Leave it blank to go back. ([#532](https://github.com/tddworks/ClaudeBar/pull/532)) → [docs](https://github.com/tddworks/ClaudeBar/blob/main/docs/features/popover-title/README.md)
 
