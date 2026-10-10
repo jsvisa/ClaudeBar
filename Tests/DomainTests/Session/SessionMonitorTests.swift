@@ -12,7 +12,8 @@ struct SessionMonitorTests {
         cwd: String = "/tmp/project",
         receivedAt: Date = Date(),
         message: String? = nil,
-        processId: Int? = nil
+        processId: Int? = nil,
+        titles: TranscriptTitles? = nil
     ) -> SessionEvent {
         SessionEvent(
             sessionId: sessionId,
@@ -20,7 +21,8 @@ struct SessionMonitorTests {
             cwd: cwd,
             receivedAt: receivedAt,
             message: message,
-            processId: processId
+            processId: processId,
+            titles: titles
         )
     }
 
@@ -242,6 +244,124 @@ struct SessionMonitorTests {
 
         #expect(monitor.sessionsByProminence.map(\.id) == ["blocked", "agents", "active-new", "active-old", "idle"])
         #expect(monitor.sessions.map(\.id) == ["idle", "active-old", "agents", "blocked", "active-new"])
+    }
+
+    // MARK: - What the Claude Code card shows
+
+    @Test
+    func `should list only the sessions that aren't done, most pressing first`() {
+        let monitor = SessionMonitor()
+        let start = Date()
+        monitor.processEvent(makeEvent(sessionId: "idle", eventName: .sessionStart, receivedAt: start))
+        monitor.processEvent(makeEvent(sessionId: "busy", eventName: .userPromptSubmit, receivedAt: start.addingTimeInterval(1)))
+        monitor.processEvent(makeEvent(sessionId: "blocked", eventName: .notification, receivedAt: start.addingTimeInterval(2)))
+        monitor.processEvent(makeEvent(sessionId: "finished", eventName: .stop, receivedAt: start.addingTimeInterval(3)))
+
+        #expect(monitor.sessionsInPlay.map(\.id) == ["blocked", "busy"])
+    }
+
+    @Test
+    func `should count each kind of session: needing you, working, done`() {
+        let monitor = SessionMonitor()
+        monitor.processEvent(makeEvent(sessionId: "blocked", eventName: .notification))
+        monitor.processEvent(makeEvent(sessionId: "busy", eventName: .userPromptSubmit))
+        monitor.processEvent(makeEvent(sessionId: "idle-1", eventName: .sessionStart))
+        monitor.processEvent(makeEvent(sessionId: "idle-2", eventName: .stop))
+
+        #expect(monitor.tally == SessionTally(needsYou: 1, working: 1, done: 2))
+    }
+
+    @Test
+    func `should count sessions with agents as working`() {
+        let monitor = SessionMonitor()
+        monitor.processEvent(makeEvent(sessionId: "agents", eventName: .subagentStart))
+        monitor.processEvent(makeEvent(sessionId: "busy", eventName: .userPromptSubmit))
+
+        #expect(monitor.tally == SessionTally(needsYou: 0, working: 2, done: 0))
+    }
+
+    @Test
+    func `should fold done sessions in the same repo into one, with the latest finish`() {
+        let monitor = SessionMonitor()
+        let start = Date()
+        monitor.processEvent(makeEvent(sessionId: "a", eventName: .stop, cwd: "/code/claudebar", receivedAt: start))
+        monitor.processEvent(makeEvent(sessionId: "b", eventName: .stop, cwd: "/code/claudebar", receivedAt: start.addingTimeInterval(60)))
+        monitor.processEvent(makeEvent(sessionId: "c", eventName: .userPromptSubmit, cwd: "/code/claudebar", receivedAt: start.addingTimeInterval(90)))
+
+        #expect(monitor.doneByRepo == [DoneRepo(repoName: "claudebar", count: 2, lastFinishedAt: start.addingTimeInterval(60))])
+    }
+
+    @Test
+    func `should put the repo that finished last first`() {
+        let monitor = SessionMonitor()
+        let start = Date()
+        monitor.processEvent(makeEvent(sessionId: "a", eventName: .stop, cwd: "/code/catalog", receivedAt: start))
+        monitor.processEvent(makeEvent(sessionId: "b", eventName: .stop, cwd: "/code/claudebar", receivedAt: start.addingTimeInterval(60)))
+
+        #expect(monitor.doneByRepo.map(\.repoName) == ["claudebar", "catalog"])
+    }
+
+    @Test
+    func `should date a done session that never ran a turn from when it started`() {
+        let monitor = SessionMonitor()
+        let opened = Date()
+        monitor.processEvent(makeEvent(sessionId: "fresh", eventName: .sessionStart, cwd: "/code/tinyshop", receivedAt: opened))
+
+        #expect(monitor.doneByRepo == [DoneRepo(repoName: "tinyshop", count: 1, lastFinishedAt: opened)])
+    }
+
+    @Test
+    func `should show a done session's title when it is alone in its repo`() {
+        let monitor = SessionMonitor()
+        let start = Date()
+        monitor.processEvent(makeEvent(sessionId: "a", eventName: .stop, cwd: "/code/tinyshop", receivedAt: start,
+                                       titles: TranscriptTitles(named: "Empty cart", generated: nil)))
+
+        #expect(monitor.doneByRepo.first?.title == "Empty cart")
+    }
+
+    @Test
+    func `should show no title for a repo's folded done sessions`() {
+        let monitor = SessionMonitor()
+        let start = Date()
+        monitor.processEvent(makeEvent(sessionId: "a", eventName: .stop, cwd: "/code/claudebar", receivedAt: start,
+                                       titles: TranscriptTitles(named: "Session names", generated: nil)))
+        monitor.processEvent(makeEvent(sessionId: "b", eventName: .stop, cwd: "/code/claudebar", receivedAt: start,
+                                       titles: TranscriptTitles(named: nil, generated: "Pull latest main")))
+
+        #expect(monitor.doneByRepo.first?.count == 2)
+        #expect(monitor.doneByRepo.first?.title == nil)
+    }
+
+    // MARK: - Titles
+
+    @Test
+    func `should title a session from its event`() {
+        let monitor = SessionMonitor()
+
+        monitor.processEvent(makeEvent(eventName: .userPromptSubmit, titles: TranscriptTitles(named: nil, generated: "Pull latest main")))
+
+        #expect(session("test-session", in: monitor)?.title == "Pull latest main")
+    }
+
+    @Test
+    func `should keep a session's title when an event found none`() {
+        let monitor = SessionMonitor()
+        monitor.processEvent(makeEvent(eventName: .userPromptSubmit, titles: TranscriptTitles(named: "Session names", generated: nil)))
+
+        monitor.processEvent(makeEvent(eventName: .stop))
+
+        #expect(session("test-session", in: monitor)?.title == "Session names")
+    }
+
+    @Test
+    func `should title an ended session from its last event`() {
+        let monitor = SessionMonitor()
+        monitor.processEvent(makeEvent(eventName: .sessionStart))
+
+        monitor.processEvent(makeEvent(eventName: .sessionEnd, titles: TranscriptTitles(named: "Session names", generated: nil)))
+
+        #expect(monitor.recentSessions.first?.title == "Session names")
     }
 
     // MARK: - Sessions whose Claude Code process is gone

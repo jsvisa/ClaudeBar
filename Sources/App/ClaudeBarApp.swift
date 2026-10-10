@@ -46,7 +46,7 @@ struct ClaudeBarApp: App {
     /// Publishes quota state to a linked Notify! device. Comes up and goes down
     /// with `notify.enabled`; does nothing until a device is linked.
     private let notifyDriver: NotifyPublishDriver
-    private let leaderboard: Leaderboard
+    private let leaderboard: AppLeaderboard
 
     /// Binding required by `.menuBarExtraAccess`; also enables programmatic
     /// dropdown control if ever needed.
@@ -60,6 +60,7 @@ struct ClaudeBarApp: App {
 
     /// The hook HTTP server that receives events from Claude Code
     private let hookServer = HookHTTPServer()
+    private let sessionTitles: any SessionTitles = TranscriptTitleReader()
 
     /// Task for the hook server event loop (allows cancellation on toggle off)
     @State private var hookServerTask: Task<Void, Never>?
@@ -197,7 +198,7 @@ struct ClaudeBarApp: App {
         notifyDriver.start()
 
         // Uploads only once the user joined; until then it reads nothing.
-        leaderboard = Leaderboard(monitor: monitor)
+        leaderboard = AppLeaderboard(monitor: monitor)
         leaderboard.start()
 
         // Start hook server if hooks are enabled
@@ -252,6 +253,10 @@ struct ClaudeBarApp: App {
                     // polling doesn't spam "Claude Code Finished: Probe"
                     // notifications or pollute the recent-sessions list. (issue #172)
                     guard !event.isClaudeBarProbe else { continue }
+                    var event = event
+                    if let path = event.transcriptPath {
+                        event = event.titled(await sessionTitles.read(transcriptAt: path))
+                    }
                     await sessionMonitor.processEvent(event)
                     await sendSessionNotification(for: event)
                 }
@@ -270,7 +275,10 @@ struct ClaudeBarApp: App {
     }
 
     @MainActor private func sendSessionNotification(for event: SessionEvent) {
-        let projectName = (event.cwd as NSString).lastPathComponent
+        // The session by its repo and title; one ClaudeBar never saw, by its folder.
+        let known = sessionMonitor.sessions.first { $0.id == event.sessionId }
+            ?? sessionMonitor.recentSessions.first { $0.id == event.sessionId }
+        let projectName = known?.repoAndTitle ?? (event.cwd as NSString).lastPathComponent
 
         switch event.eventName {
         case .sessionStart:
