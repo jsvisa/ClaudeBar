@@ -200,40 +200,47 @@ struct UsageHistoryTests {
     /// `scripts/demo-screenshots.sh` writes a custom provider into the demo
     /// home's `~/.claudebar/providers`, with a `usageHistory` over thirty-one
     /// days of sample logs — the definition, not a built-in, is what says
-    /// where they are.
+    /// where they are. Written as a value, not as text: the folder is a
+    /// Windows path there, and a backslash in a JSON string is an escape.
     private func writeDemoProvider() throws {
         let dir = home.appendingPathComponent(".claudebar/providers")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let definition = """
-        {
-          "profile": { "id": "custom-a-claude", "name": "Claude", "origin": "custom", "links": {}, "look": {} },
-          "dataSources": [{ "kind": "api", "label": "API", "fetch": { "http": { "url": "http://127.0.0.1:1/" } },
-                            "mapping": { "json": { "quotas": [] } } }],
-          "defaultDataSource": "api",
-          "usageHistory": {
-            "records": { "files": "\(home.path)/sample-logs/*.jsonl", "format": "jsonLines", "at": "$.at",
-                         "id": ["$.id"], "model": "$.model",
-                         "tokens": { "input": "$.input", "output": "$.output", "cacheRead": "$.cacheRead" },
-                         "cost": "$.cost" },
-            "sessionGap": 1800
-          }
-        }
-        """
-        try definition.write(to: dir.appendingPathComponent("custom-a-claude.json"), atomically: true, encoding: .utf8)
+        let profile: [String: Any] = ["id": "custom-a-claude", "name": "Claude", "origin": "custom",
+                                      "links": [String: Any](), "look": [String: Any]()]
+        let records: [String: Any] = ["files": home.appendingPathComponent("sample-logs/*.jsonl").path,
+                                      "format": "jsonLines", "at": "$.at", "id": ["$.id"], "model": "$.model",
+                                      "tokens": ["input": "$.input", "output": "$.output", "cacheRead": "$.cacheRead"],
+                                      "cost": "$.cost"]
+        let quotaSource: [String: Any] = ["kind": "api", "label": "API",
+                                          "fetch": ["http": ["url": "http://127.0.0.1:1/"]],
+                                          "mapping": ["json": ["quotas": [Any]()]]]
+        let definition: [String: Any] = [
+            "profile": profile,
+            "dataSources": [quotaSource],
+            "defaultDataSource": "api",
+            "usageHistory": ["records": records, "sessionGap": 1800],
+        ]
+        try JSONSerialization.data(withJSONObject: definition, options: [.prettyPrinted, .sortedKeys])
+            .write(to: dir.appendingPathComponent("custom-a-claude.json"))
     }
 
-    /// Thirty-one days of the demo's sample sessions, one file, as it writes them.
+    /// Thirty-one days of the demo's sample sessions, one file, as it writes
+    /// them. Today's are at `now`, the way `log(_:)` above does: the demo
+    /// anchors them seven hours back, which before 07:00 is yesterday's day,
+    /// and a fixture that emptied today's cards at four in the morning would
+    /// be testing the clock rather than the days.
     private func writeSampleLogs() throws {
         let dir = home.appendingPathComponent("sample-logs")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let calendar = Calendar.current
+        let formatter = ISO8601DateFormatter()
         var lines: [String] = []
         for daysAgo in 0...30 {
-            let day = calendar.date(byAdding: .day, value: -daysAgo, to: calendar.startOfDay(for: Date()))!
+            let start = calendar.date(byAdding: .day, value: -daysAgo, to: calendar.startOfDay(for: Date()))!
             for step in 0..<3 {
-                let at = day.addingTimeInterval(9 * 3600 + Double(step) * 3600)
+                let at = daysAgo == 0 ? Date() : start.addingTimeInterval(9 * 3600 + Double(step) * 3600)
                 lines.append("""
-                {"at":"\(ISO8601DateFormatter().string(from: at))","id":"sample-\(daysAgo)-\(step)",\
+                {"at":"\(formatter.string(from: at))","id":"sample-\(daysAgo)-\(step)",\
                 "model":"claude-sonnet-sample","input":12000,"output":3000,"cacheRead":200000,"cost":0.42}
                 """)
             }
