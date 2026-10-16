@@ -96,7 +96,7 @@ struct OpenCodeDefinitionTests {
         Int64(ISO8601DateFormatter().date(from: iso)!.timeIntervalSince1970 * 1000)
     }
 
-    @Test func `should show the 5-hour, weekly and monthly quotas with their resets and windows when OpenCode Go answers`() async throws {
+    @Test(.needsScriptEngine) func `should show the 5-hour, weekly and monthly quotas with their resets and windows when OpenCode Go answers`() async throws {
         let p = try make()
         #expect(p.name == "OpenCode Go")
         #expect(!p.defaultAccount.isPaused)
