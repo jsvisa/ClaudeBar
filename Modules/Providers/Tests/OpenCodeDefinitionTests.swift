@@ -66,12 +66,16 @@ struct OpenCodeDefinitionTests {
     }
 
     /// A provider whose default login has `key`, reading the database of
-    /// `layout` under `home` (fresh when nil).
+    /// `layout` under `home` (fresh when nil). The database is written only
+    /// when the local source can run — an API test reads no database, and
+    /// the fixture needs this platform's `sqlite3` to exist.
     private func make(body: String = usage, status: Int = 200, key: String? = "personal",
                       layout: Layout? = .v2, messages: [(at: Int64, cost: Double, provider: String)] = [],
                       clock: Date = now, home: URL? = nil, available: Bool = true,
                       vault: MemoryVault = MemoryVault()) throws -> Provider {
-        let home = try database(layout, messages: messages, home: home ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        let reading = key == nil
+        let home = try database(reading ? layout : nil, messages: reading ? messages : [],
+                                home: home ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
         let env = ["XDG_DATA_HOME": home.appendingPathComponent("data").path]
         let def = try ProviderFactory.builtIn("opencode-go")
         let net = MockNetworkClient()
